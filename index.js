@@ -1,8 +1,9 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
 const { MongoClient, ServerApiVersion } = require("mongodb");
 
-require("dotenv").config();
 const port = process.env.PORT || 5000;
 const app = express();
 
@@ -17,7 +18,22 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
-console.log(uri);
+
+//verifyJWT secret=================
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "UnAuthorized access" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 
 // ==========================
 async function run() {
@@ -30,8 +46,6 @@ async function run() {
     // get from database========================
     app.get("/items", async (req, res) => {
       // console.log(req.query);
-      const limit = Number(req.query.limit);
-      const pageNumber = Number(req.query.pageNumber);
       const query = {};
       const cursor = itemsCollection.find(query);
       const items = await cursor.toArray();

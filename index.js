@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-// const jwt = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const { MongoClient, ServerApiVersion } = require("mongodb");
 
@@ -19,21 +19,21 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
-// verifyJWT secret=================
-// function verifyJWT(req, res, next) {
-//   const authHeader = req.headers.authorization;
-//   if (!authHeader) {
-//     return res.status(401).send({ message: "UnAuthorized access" });
-//   }
-//   const token = authHeader.split(" ")[1];
-//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
-//     if (err) {
-//       return res.status(403).send({ message: "Forbidden access" });
-//     }
-//     req.decoded = decoded;
-//     next();
-//   });
-// }
+// // verifyJWT secret=================
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "UnAuthorized access" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "Forbidden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
 
 // ==========================
 async function run() {
@@ -43,14 +43,31 @@ async function run() {
     //itemsCollection=============
     const itemsCollection = client.db("tools_manufacturer").collection("items");
 
+    //reviewCollection
+    const reviewCollection = client
+      .db("tools_manufacturer")
+      .collection("review");
+
     // get from database========================
     app.get("/items", async (req, res) => {
       // console.log(req.query);
       const query = {};
       const cursor = itemsCollection.find(query);
       const items = await cursor.toArray();
-
       res.send(items);
+    });
+
+    // Post review api
+    app.post("/review", async (req, res) => {
+      const newReview = req.body;
+      const result = await reviewCollection.insertOne(newReview);
+      res.send(result);
+    });
+
+    // Count Reviews
+    app.get("/reviewCount", async (req, res) => {
+      const count = await reviewCollection.estimatedDocumentCount();
+      res.send({ count });
     });
   } finally {
   }

@@ -43,6 +43,10 @@ async function run() {
     //itemsCollection=============
     const itemsCollection = client.db("tools_manufacturer").collection("items");
 
+    const usersToCollection = client
+      .db("tools_manufacturer")
+      .collection("usersto");
+
     //ordersCollection==========
     const ordersCollection = client
       .db("tools_manufacturer")
@@ -62,7 +66,14 @@ async function run() {
       res.send(items);
     });
 
-    // delete items from order
+    // POST item add new data=======
+    app.post("/items", async (req, res) => {
+      const newOrder = req.body;
+      const result = await itemsCollection.insertOne(newOrder);
+      res.send(result);
+    });
+
+    // delete items from main data======
     app.delete("/d-items/:id", async (req, res) => {
       // console.log(req.params);
       const id = req.params.id;
@@ -72,14 +83,14 @@ async function run() {
       res.send(result);
     });
 
-    // POST Order API
+    // POST Order API data
     app.post("/orders-item", async (req, res) => {
       const newOrder = req.body;
       const result = await ordersCollection.insertOne(newOrder);
       res.send(result);
     });
 
-    // get items from order========================
+    // get items from order data========================
     app.get("/get-orders-items", async (req, res) => {
       // console.log(req.query);
       const query = {};
@@ -96,6 +107,81 @@ async function run() {
       console.log("query", query);
       const result = await ordersCollection.deleteOne(query);
       res.send(result);
+    });
+
+    // verify Admin =================
+    const verifyAdmin = async (req, res, next) => {
+      const requester = req.decoded.email;
+      const requesterAccount = await usersToCollection.findOne({
+        email: requester,
+      });
+      if (requesterAccount.role === "admin") {
+        next();
+      } else {
+        res.status(403).send({ message: "forbidden" });
+      }
+    };
+
+    //get all for useAdmin=========
+    app.get("/user-t", verifyJWT, async (req, res) => {
+      const users = await usersToCollection.find().toArray();
+      res.send(users);
+    });
+
+    // admin require for useAdmin==========
+    app.get("/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = await usersToCollection.findOne({ email: email });
+      const isAdmin = user.role === "admin";
+      res.send({ admin: isAdmin });
+    });
+
+    // put users to admin--------------------
+    app.put(
+      "/user-t/admin/:email",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        // console.log(req);
+        const email = req.params.email;
+        const requester = req.decoded.email;
+        const requesterAccount = await usersToCollection.findOne({
+          email: requester,
+        });
+        if (requesterAccount.role === "admin") {
+          const filter = { email: email };
+          const updateDoc = {
+            $set: { role: "admin" },
+          };
+          const result = await usersToCollection.updateOne(filter, updateDoc);
+          res.send(result);
+        } else {
+          res.status(403).send({ message: "forbidden" });
+        }
+      }
+    );
+
+    // put users to userto collection--------------------
+    app.put("/user-t/:email", async (req, res) => {
+      console.log(req);
+      const email = req.params.email;
+      const user = req.body;
+      const filter = { email: email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: user,
+      };
+      const result = await usersToCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      const token = jwt.sign(
+        { email: email },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: "1h" }
+      );
+      res.send({ result, token });
     });
 
     // Post review api

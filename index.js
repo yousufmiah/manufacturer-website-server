@@ -61,10 +61,10 @@ async function run() {
 
     //payment collection=================
     const paymentCollection = client
-      .db("tools-manufacturer")
+      .db("tools_manufacturer")
       .collection("payments");
 
-    //for payment=========
+    //stripe payment=========
     app.post("/create-payment-intents", async (req, res) => {
       const order = req.body;
       const price = order.price;
@@ -84,6 +84,24 @@ async function run() {
       const order = await ordersCollection.findOne(query);
       res.send(order);
     });
+
+    //+++++++++++++++++++++
+    //patch for stripe payment update ===========
+    app.patch("/order/:id", async (req, res) => {
+      const id = req.params.id;
+      const payment = req.body;
+      const filter = { _id: id };
+      const updatedDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId,
+        },
+      };
+      const result = await paymentCollection.insertOne(payment);
+      const updatedOrder = await ordersCollection.updateOne(filter, updatedDoc);
+      res.send(updatedOrder);
+    });
+    //+++++++++++++++++++++
 
     // get all items from database========================
     app.get("/items", async (req, res) => {
@@ -151,7 +169,7 @@ async function run() {
     };
 
     //get all for useAdmin=========
-    app.get("/user-t", verifyJWT, async (req, res) => {
+    app.get("/user-t", async (req, res) => {
       const users = await usersToCollection.find().toArray();
       res.send(users);
     });

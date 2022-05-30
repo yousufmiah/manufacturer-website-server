@@ -149,9 +149,16 @@ async function run() {
     // get items from order data========================
     app.get("/get-orders-items/:email", async (req, res) => {
       // console.log(req.query);
-
       const email = req.params.email;
       const cursor = ordersCollection.find({ email });
+      const items = await cursor.toArray();
+      res.send(items);
+    });
+
+    // get all items from order data========================
+    app.get("/get-orders", async (req, res) => {
+      // console.log(req.query);
+      const cursor = ordersCollection.find();
       const items = await cursor.toArray();
       res.send(items);
     });

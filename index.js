@@ -147,10 +147,11 @@ async function run() {
     });
 
     // get items from order data========================
-    app.get("/get-orders-items", async (req, res) => {
+    app.get("/get-orders-items/:email", async (req, res) => {
       // console.log(req.query);
-      const query = {};
-      const cursor = ordersCollection.find(query);
+
+      const email = req.params.email;
+      const cursor = ordersCollection.find({ email });
       const items = await cursor.toArray();
       res.send(items);
     });

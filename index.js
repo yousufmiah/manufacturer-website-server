@@ -123,16 +123,25 @@ async function run() {
     app.delete("/d-items/:id", async (req, res) => {
       // console.log(req.params);
       const id = req.params.id;
-      const query = { _id: id };
+      const query = { _id: Object(id) };
       // console.log("query", query);
       const result = await itemsCollection.deleteOne(query);
       res.send(result);
     });
 
-    // POST Order API data
-    app.post("/orders-item", async (req, res) => {
-      const newOrder = req.body;
-      const result = await ordersCollection.insertOne(newOrder);
+    // Put Order API data
+    app.put("/orders-item", async (req, res) => {
+      const newOrder = req.body.newOrder;
+      const query = req.body.name;
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: newOrder,
+      };
+      const result = await ordersToCollection.updateOne(
+        query,
+        updateDoc,
+        options
+      );
       res.send(result);
     });
 

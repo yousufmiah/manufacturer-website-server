@@ -155,7 +155,7 @@ async function run() {
       res.send(items);
     });
 
-    // get all items from order data========================
+    // get all items from order data======================
     app.get("/get-orders", async (req, res) => {
       // console.log(req.query);
       const cursor = ordersCollection.find();

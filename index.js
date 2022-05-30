@@ -132,7 +132,7 @@ async function run() {
     // Put Order API data
     app.put("/orders-item", async (req, res) => {
       const newOrder = req.body.newOrder;
-      const query = req.body.name;
+      const query = req.body.query;
       const options = { upsert: true };
       const updateDoc = {
         $set: newOrder,

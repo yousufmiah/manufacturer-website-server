@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const { default: Stripe } = require("stripe");
+const { resetWatchers } = require("nodemon/lib/monitor/watch");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const port = process.env.PORT || 5000;
@@ -123,26 +124,26 @@ async function run() {
     app.delete("/d-items/:id", async (req, res) => {
       // console.log(req.params);
       const id = req.params.id;
-      const query = { _id: Object(id) };
+      const query = { _id: ObjectId(id) };
       // console.log("query", query);
       const result = await itemsCollection.deleteOne(query);
       res.send(result);
     });
 
-    // Put Order API data
-    app.put("/orders-item", async (req, res) => {
-      const newOrder = req.body.newOrder;
-      const query = req.body.query;
-      const options = { upsert: true };
-      const updateDoc = {
-        $set: newOrder,
-      };
-      const result = await ordersToCollection.updateOne(
-        query,
-        updateDoc,
-        options
-      );
-      res.send(result);
+    // post Order API data
+    app.post("/orders-item/:email", async (req, res) => {
+      const newOrder = req.body;
+      const email = req.params.email;
+      const exist = await ordersCollection.findOne({
+        email: email,
+        name: newOrder.name,
+      });
+      if (exist) {
+        res.send({ success: "Already exist" });
+      } else {
+        const result = await ordersCollection.insertOne(newOrder);
+        res.send({ success: "Order added success" });
+      }
     });
 
     // get items from order data========================
@@ -159,7 +160,7 @@ async function run() {
       // console.log(req.params);
       const id = req.params.id;
       const query = { _id: id };
-      console.log("query", query);
+      // console.log("query", query);
       const result = await ordersCollection.deleteOne(query);
       res.send(result);
     });
@@ -218,7 +219,7 @@ async function run() {
 
     // put users to userto collection--------------------
     app.put("/user-t/:email", async (req, res) => {
-      console.log(req);
+      // console.log(req);
       const email = req.params.email;
       const user = req.body;
       const filter = { email: email };
